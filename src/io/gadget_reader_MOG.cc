@@ -54,7 +54,7 @@ void readGadgetFile_MOG(std::string filename,
     std::string fileName = filename;
     std::string fileNameMOG;
     
-    
+#ifdef SCALAR    
     // reserve memory for the scalar particle data
     int noScalars = atoi( userOptions->additionalOptions[1].c_str() );
     if ( noScalars>0  and  noScalars<=noScalarComp )
@@ -64,7 +64,7 @@ void readGadgetFile_MOG(std::string filename,
         std::cout << "~~~ ERROR ~~~ The file required number of scalar components = " << noScalars << " is larger than the one specified when the program has been compiled = " << noScalarComp << "! The program ended unsucessfully!\n";
         exit( EXIT_FAILURE );
     }
-    
+#endif    
     
     // read the data in each file
     size_t numberParticlesRead  = 0;   // the total number of particles read after each file
@@ -82,8 +82,10 @@ void readGadgetFile_MOG(std::string filename,
         // read the forces from that file
         fileNameMOG = gadgetHeader.filename( userOptions->additionalOptions[0], i+1 );
         size_t noParticlesThisFile = numberParticlesRead - numberParticlesRead2;
+#ifdef SCALAR				
         if ( noScalars > 0 )
             readForces_MOG( fileNameMOG, readData, *userOptions, noParticlesThisFile, noScalars, &numberParticlesRead2 );
+#endif						
     }
     
     
@@ -92,8 +94,10 @@ void readGadgetFile_MOG(std::string filename,
     {
         if ( userOptions->readParticleData[0] )
             ByteSwapArray( readData->position(), NO_DIM*noParticles );
+#ifdef WEIGHT
         if ( userOptions->readParticleData[1] )
             ByteSwapArray( readData->weight(), noParticles );
+#endif						
 #ifdef VELOCITY
         if ( userOptions->readParticleData[2] )
             ByteSwapArray( readData->velocity(), NO_DIM*noParticles );
@@ -131,7 +135,7 @@ void readForces_MOG(std::string fileName,
     openInputBinaryFile( inputFile, fileName );
     int buffer1, buffer2;
     
-    
+#ifdef SCALAR
     // read the data block
     inputFile.read( reinterpret_cast<char *>(&buffer1), sizeof(buffer1) );
     
@@ -143,7 +147,6 @@ void readForces_MOG(std::string fileName,
     if ( buffer1!=buffer2 )
         throwError( "The integers before and after the particle 'MOG forces' data block in the GADGET file '" + fileName + "' did not match. The GADGET snapshot file is corrupt." );
     
-    
     // copy the data to the scalar block
     size_t alreadyRead = (*numberParticlesRead) * noScalarComp;
     Real *scalar = &( readData->scalar()[ alreadyRead ] );  // pointer to the first place where to start writing
@@ -151,6 +154,7 @@ void readForces_MOG(std::string fileName,
         for (int j=0; j<noScalars; ++j)
             scalar[ i*noScalarComp + j ] = data[ i*noScalars + j ];
     delete[] data;
+#endif		
     message << "Done.";
 
     inputFile.close();

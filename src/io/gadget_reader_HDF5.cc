@@ -53,7 +53,6 @@ void HDF5_readGadgetHeader(std::string filename,
     H5File *file = new H5File( FILE_NAME, H5F_ACC_RDONLY, H5P_DEFAULT );
     Group *group = new Group( file->openGroup("/Header") );
     
-    
     // start reading one header attribute at a time
     std::string name( "NumPart_ThisFile" );
     if ( doesAttributeExist( group->getId(), name.c_str() ) )
@@ -100,7 +99,6 @@ void HDF5_readGadgetHeader(std::string filename,
     name = "HubbleParam";
     if ( doesAttributeExist( group->getId(), name.c_str() ) )
         group->openAttribute( name.c_str() ).read( PredType::NATIVE_DOUBLE, &(gadgetHeader->HubbleParam) );
-    
     
     // close the group and file
     delete group;
@@ -159,7 +157,7 @@ void HDF5_readGadgetData(std::string filename,
         message << "Done\n";
     }
     
-    
+#ifdef WEIGHT
     // read the masses (or weights) if different
     if ( userOptions.readParticleData[1] )
     {
@@ -190,8 +188,9 @@ void HDF5_readGadgetData(std::string filename,
         }
         message << "Done\n";
     }
-    
-    
+#endif
+
+#ifdef VELOCITY    
     // read the velocities
     if ( userOptions.readParticleData[2] )
     {
@@ -215,8 +214,9 @@ void HDF5_readGadgetData(std::string filename,
         }
         message << "Done\n";
     }
-    
-    
+#endif    
+
+#ifdef SCALAR
     int noScalarsRead = 0;
     // read the temperatures
     if ( userOptions.readParticleData[3] and gadgetHeader.npart[0]>0 )
@@ -231,20 +231,26 @@ void HDF5_readGadgetData(std::string filename,
         
         // get the mass weighted temperature
         float *scalar = readData->scalar();          // returns a pointer to the particle scalar properties array
+#ifdef WEIGHT				
         float *weights = readData->weight();         // returns a pointer to the particle weights array
+#endif				
         size_t dataOffset = (*numberParticlesRead);  // the offset in the scalar array from where to start reading the new values
         for (size_t i=0; i<size_t(gadgetHeader.npart[0]); ++i)
         {
             size_t index1 = dataOffset + i;
             size_t index2 = index1 * NO_SCALARS + noScalarsRead;
+#ifdef WEIGHT				
             scalar[index2] = weights[index1] * tempData[i];
+#else
+            scalar[index2] = tempData[i];
+#endif						
         }
         
         delete[] tempData;
         noScalarsRead += 1;
         message << "Done\n";
     }
-    
+#endif    
     
     delete file;
     for (int i=0; i<6; ++i)     // update the number of read particles
@@ -355,8 +361,10 @@ void HDF5_initializeGadget(std::string filename,
     // allocate memory for the particle data
     if ( userOptions->readParticleData[0] )
         readData->position( *noParticles );  // particle positions
+#ifdef WEIGHT				
     if ( userOptions->readParticleData[1] )
         readData->weight( *noParticles );    // particle weights (weights = particle masses from the snapshot file)
+#endif				
 #ifdef VELOCITY
     if ( userOptions->readParticleData[2] )
         readData->velocity( *noParticles );  // particle velocities
@@ -476,6 +484,7 @@ void HDF5_readGadgetData_HI(std::string filename,
     }
     
     
+#ifdef WEIGHT				
     // read the masses (or weights) if different
     if ( userOptions.readParticleData[1] )
     {
@@ -506,7 +515,6 @@ void HDF5_readGadgetData_HI(std::string filename,
         }
         message << "Done\n";
     }
-    
     
     // get the actual HI mass using the gas data and the HI fraction
     if ( gadgetHeader.npart[0]>0 )
@@ -546,6 +554,7 @@ void HDF5_readGadgetData_HI(std::string filename,
         delete[] hydrogenOneFraction;
         message << "Done\n";
     }
+#endif						
     
     
     // read the velocities
@@ -572,7 +581,7 @@ void HDF5_readGadgetData_HI(std::string filename,
         message << "Done\n";
     }
     
-    
+#ifdef SCALAR    
     int noScalarsRead = 0;
     // read the temperatures
     if ( userOptions.readParticleData[3] and gadgetHeader.npart[0]>0 )
@@ -587,20 +596,26 @@ void HDF5_readGadgetData_HI(std::string filename,
         
         // get the mass weighted temperature
         float *scalar = readData->scalar();          // returns a pointer to the particle scalar properties array
+#ifdef WEIGHT
         float *weights = readData->weight();         // returns a pointer to the particle weights array
+#endif				
         size_t dataOffset = (*numberParticlesRead);  // the offset in the scalar array from where to start reading the new values
         for (size_t i=0; i<size_t(gadgetHeader.npart[0]); ++i)
         {
             size_t index1 = dataOffset + i;
             size_t index2 = index1 * NO_SCALARS + noScalarsRead;
+#ifdef WEIGHT
             scalar[index2] = weights[index1] * tempData[i];
+#else						
+            scalar[index2] = tempData[i];
+#endif						
         }
         
         delete[] tempData;
         noScalarsRead += 1;
         message << "Done\n";
     }
-    
+#endif    
     
     delete file;
     delete file2;

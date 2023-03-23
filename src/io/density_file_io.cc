@@ -207,7 +207,13 @@ struct Density_header
     void copyGadgetHeaderInfo(User_options userOptions)
     {
         Gadget_header gadgetHeader;
+
+        //std::string filename = userOptions.inputFilename; //buffer.str();
+				//filename += "0";
+				//filename = gadgetHeader.filename( filename, 0, false );
         std::string filename = gadgetHeader.filename( userOptions.inputFilename, 0, false );
+
+
         if ( not bfs::exists(filename) ) return;    //file could not be found
         
         if ( userOptions.inputFileType==101 or userOptions.inputFileType==102 )
@@ -228,8 +234,10 @@ struct Density_header
             inputFile.read( reinterpret_cast<char *>(&gadgetHeader), sizeof(gadgetHeader) );
             inputFile.close();
         }
+#ifdef HDF5
         else if ( userOptions.inputFileType==105 )
             HDF5_readGadgetHeader( filename, &gadgetHeader );
+#endif
         else
             return;
         

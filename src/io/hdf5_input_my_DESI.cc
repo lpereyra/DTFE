@@ -141,6 +141,7 @@ void HDF5_initialize_DESI(std::string filename,
     // allocate memory for the particle data
     if ( userOptions->readParticleData[0] )
         readData->position( *noParticles );  // particle positions
+#ifdef WEIGHT		
     if ( userOptions->readParticleData[1] )
     {
         readData->weight( *noParticles );    // particle weights (weights = particle masses from the snapshot file)
@@ -148,6 +149,7 @@ void HDF5_initialize_DESI(std::string filename,
         for (size_t j=0; j<*noParticles; ++j)
             weights[j] = particleMass;
     }
+#endif
 #ifdef VELOCITY
     if ( userOptions->readParticleData[2] )
         readData->velocity( *noParticles );  // particle velocities

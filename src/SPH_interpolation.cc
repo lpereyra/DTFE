@@ -320,9 +320,13 @@ void SPH_interpolation(vector<Particle_data> &p,
             Real const temp = std::sqrt( result[j].dis );
             int const id = result[j].idx;
             int bin1 = int( temp / (h[i]*dx));
-            
+#ifdef WEIGHT            
             d[i] += Real(0.5) * p[id].weight() * c1*W[bin1];
             d[id] += Real(0.5) * p[i].weight() * c1*W[bin1];
+#else
+            d[i] += Real(0.5) * c1*W[bin1];
+            d[id] += Real(0.5) * c1*W[bin1];
+#endif						
         }
     }
     message << "100%\n" << MESSAGE::Flush;
@@ -370,8 +374,11 @@ void SPH_interpolation(vector<Particle_data> &p,
             int const id = result[j].idx;
             Real tempR = std::sqrt( result[j].dis );
             int bin1 = int( tempR / (tempH*dx));
-            
+#ifdef WEIGHT            
             Real temp1 = Real(0.5) * p[id].weight() * c1*W[bin1];
+#else
+            Real temp1 = Real(0.5) * c1*W[bin1];
+#endif						
             resDens += temp1;
             resVel += p[id].velocity() * temp1;
             resIntensive += p[id].scalar() * temp1;
@@ -413,7 +420,11 @@ void SPH_interpolation(vector<Particle_data> &p,
         Real const distance = Real(4.) * h[i]*h[i]; //(2h)^2
         tree->r_nearest( y, distance, result );    //now locate all the grid points within the smoothing radius of the given particle
         
+#ifdef WEIGHT            
         Real const c1 = Real(0.5) * p[i].weight() * hFactor(h[i]);
+#else				
+        Real const c1 = Real(0.5) * hFactor(h[i]);
+#endif				
         for (size_t j=0; j<result.size(); ++j)
         {
             int const id = result[j].idx;

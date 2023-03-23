@@ -50,6 +50,12 @@ void DTFE(std::vector<Particle_data> *allParticles,
 #include "CGAL_triangulation/CGAL_include_3D.h"
 #endif
 #include "math_functions.h"
+#ifdef PERCENT
+  #ifndef FRACC 
+    #define FRACC   0.1           //  EL PORCENTAJE QUE GUARDO
+  #endif
+#endif
+
 
 // Computes the grid interpolation (no partition options available as well as no parallel threads)
 void DTFE(std::vector<Particle_data> *allParticles,

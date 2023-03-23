@@ -84,7 +84,9 @@ void randomParticles(std::vector<Particle_data> *particles,
     for (size_t i=0; i<noParticles; ++i)
     {
         Particle_data temp;
+#ifdef WEIGHT				
         temp.weight() = 1.;
+#endif
         for (int j=0; j<NO_DIM; ++j)
             temp.pos[j] = uni();
         

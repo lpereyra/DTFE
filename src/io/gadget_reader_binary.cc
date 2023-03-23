@@ -69,12 +69,23 @@ void initializeGadget(std::string filename,
     MESSAGE::Message message( userOptions->verboseLevel );
     std::string fileName = filename;
     bool singleFile = true;
-    if ( not bfs::exists(fileName) ) //if this is true, than the input is in several files
+    
+		fprintf(stdout,"%s %s ---- %d\n",filename.c_str(),fileName.c_str(),bfs::exists(fileName) );
+		fflush(stdout);
+    
+		if ( not bfs::exists(fileName) ) //if this is true, than the input is in several files
     {
-        fileName = gadgetHeader->filename( filename, 0 );
+        fileName += "0";
+        fileName = gadgetHeader->filename( fileName, 0 );
+				fprintf(stdout,"Dentro %s\n",fileName.c_str());
         singleFile = false;
-    }
+    }else{
+			fprintf(stdout,"else %s %s\n",fileName.c_str(), gadgetHeader->filename(filename,0));
+			fflush(stdout);
+		}
 
+		fprintf(stdout,"out %s %s\n",filename.c_str(),fileName.c_str());
+		fflush(stdout);
 
     // open the first binary file for reading and read some of the overall characteristics
     std::fstream inputFile;
@@ -100,10 +111,8 @@ void initializeGadget(std::string filename,
     SWAP_HEADER_ENDIANNESS( *swapEndian, buffer1, buffer2, (*gadgetHeader) ); //swap endianness if that is the case  
     
     // get the type (float/double) used to store position and velocity data
-    inputFile.seekg( offset, std::ios::cur );
     inputFile.read( reinterpret_cast<char *>(&buffer3), sizeof(buffer3) );
     inputFile.seekg( buffer3, std::ios::cur );
-    inputFile.seekg( offset, std::ios::cur );
     inputFile.read( reinterpret_cast<char *>(&buffer4), sizeof(buffer4) );
     inputFile.read( reinterpret_cast<char *>(&buffer4), sizeof(buffer4) );
     inputFile.close();
@@ -166,9 +175,11 @@ void initializeGadget(std::string filename,
     message << "Allocating memory for: positions... " << MESSAGE::Flush;
     if ( userOptions->readParticleData[0] )
         readData->position( *noParticles );  // particle positions
+#ifdef WEIGHT
     message << "weights... " << MESSAGE::Flush;
     if ( userOptions->readParticleData[1] )
         readData->weight( *noParticles );    // particle weights (weights = particle masses from the snapshot file)
+#endif				
 #ifdef VELOCITY
     message << "velocity... " << MESSAGE::Flush;
     if ( userOptions->readParticleData[2] )
@@ -227,7 +238,10 @@ void readGadgetFile(std::string filename,
     // iterate over all the files and read the data
     for (int i=0; i<gadgetHeader.num_files; ++i )
     {
-        fileName = gadgetHeader.filename( filename, i );
+        std::ostringstream buffer;
+        buffer << filename << i;
+				fileName = gadgetHeader.filename( buffer.str(), i );
+        //fileName = gadgetHeader.filename( filename, i );
         message << "Reading GADGET snapshot file '" << fileName << "' which is file " << i+1 << " of " << gadgetHeader.num_files << " files...\n" << MESSAGE::Flush;
 
         // call the function that reads the data
@@ -240,8 +254,10 @@ void readGadgetFile(std::string filename,
     {
         if ( userOptions->readParticleData[0] )
             ByteSwapArray( readData->position(), NO_DIM*noParticles );
+#ifdef WEIGHT						
         if ( userOptions->readParticleData[1] )
             ByteSwapArray( readData->weight(), noParticles );
+#endif						
 #ifdef VELOCITY
         if ( userOptions->readParticleData[2] )
             ByteSwapArray( readData->velocity(), NO_DIM*noParticles );
@@ -271,7 +287,10 @@ void countGadgetParticleNumber(std::string filenameRoot,
     for (int i=0; i<noFiles; ++i)
     {
         Gadget_header gadgetHeader;
-        std::string fileName = gadgetHeader.filename( filenameRoot, i ); //get the filename for file i
+        std::ostringstream buffer;
+        buffer << filenameRoot << i;
+        std::string fileName = gadgetHeader.filename( buffer.str(), i ); //get the filename for file i
+        //std::string fileName = gadgetHeader.filename( filenameRoot, i ); //get the filename for file i
 
         std::fstream inputFile;
         openInputBinaryFile( inputFile, fileName );
@@ -443,13 +462,11 @@ void readGadgetData(std::string fileName,
 #endif
     DELIMETER_CONSISTANCY_CHECK("velocity");
 
-
     // skip the particle ID block
     message << "\n\t (skipping ids)" << MESSAGE::Flush;
     READ_DELIMETER;
     inputFile.seekg( buffer1, std::ios::cur );
     DELIMETER_CONSISTANCY_CHECK("id");
-
 
     // read the masses (or weights) if different
     bool massBlockPresent = false;
@@ -461,6 +478,7 @@ void readGadgetData(std::string fileName,
     {
         READ_DELIMETER;
     }
+#ifdef WEIGHT
     if ( userOptions.readParticleData[1] )
     {
         Real *weights = readData->weight();          // returns a pointer to the particle weights array
@@ -513,19 +531,32 @@ void readGadgetData(std::string fileName,
         }
         message << "Done.\n";
     }
+#else
+    if ( massBlockPresent )
+    {
+	    message << "\n\t (skipping weights)" << MESSAGE::Flush;
+	    size_t skipBytes = 0;
+  	  for (int i=0; i<6; ++i)
+    	    skipBytes += tempHeader.npart[i] * noBytesPos;
+	    inputFile.seekg( skipBytes, std::ios::cur );
+		}
+#endif
     if ( massBlockPresent )
     {
         DELIMETER_CONSISTANCY_CHECK("mass");
     }
 
 
+#ifdef SCALAR
     // read the internal energy
     size_t noScalarsRead = 0;
     if ( userOptions.readParticleData[3] and tempHeader.npart[0]>0) 
     { // only makes sense for gas particles
         READ_DELIMETER;
         Real *scalar = readData->scalar();          // returns a pointer to the particle scalar properties array
+#ifdef WEIGHT
         Real *weights = readData->weight();         // returns a pointer to the particle weights array
+#endif
         size_t dataOffset = (*numberParticlesRead);  // the offset in the array to store current files' particles' U
         message << "\t reading internal energy of the particles... " << MESSAGE::Flush;
 
@@ -539,7 +570,11 @@ void readGadgetData(std::string fileName,
         {
             size_t index1 = dataOffset + i;
             size_t index2 = index1 * NO_SCALARS + noScalarsRead;
+#ifdef WEIGHT
             scalar[index2] = weights[index1] * tempData[i]; // U is given per unit mass in Gadget
+#else
+            scalar[index2] = tempData[i]; // U is given per unit mass in Gadget
+#endif
             mean += scalar[index2];
         }
         mean /= tempHeader.npart[0];
@@ -563,6 +598,7 @@ void readGadgetData(std::string fileName,
         //~ inputFile.seekg( skipBytes, std::ios::cur );
         //~ DELIMETER_CONSISTANCY_CHECK("internal energy U");
     //~ }
+#endif
 
     inputFile.close();
     message << "\n";
@@ -570,11 +606,5 @@ void readGadgetData(std::string fileName,
         if ( userOptions.readParticleSpecies[i] )
             (*numberParticlesRead) += tempHeader.npart[i];
 }
-
-
-
-
-
-
 
 

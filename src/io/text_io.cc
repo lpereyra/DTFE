@@ -79,10 +79,15 @@ void readTextFile(std::string filename,
     // assign memory to store the particle data being read from file
     // the following assumes that the text file has a line for each particle with: posX, posY, posZ, velX, velY, velZ, weight(=particle mass), scalar(1 component)
     Real *positions = readData->position(noParticles);  //particle positions
+#ifdef VELOCITY		
     Real *velocities = readData->velocity(noParticles); //particle velocities
+#endif		
+#ifdef WEIGHT
     Real *weights = readData->weight(noParticles);      //particle weights (e.g. weights = particle/galaxy masses)
+#endif		
+#ifdef SCALAR
     Real *scalars = readData->scalar(noParticles);      //scalar component for each particle
-    
+#endif    
     
     // now read the particle data
     for (int i=0; i<noParticles; ++i)
@@ -93,8 +98,10 @@ void readTextFile(std::string filename,
         // read velocities
 //         for (int j=0; j<noVelComp; ++j)
 //             inputFile >> velocities[noVelComp*i+j];
+#ifdef WEIGHT
         // read weight
         inputFile >> weights[i];
+#endif			
         // read scalar components
 //         for (int j=0; j<noScalarComp; ++j)  // must have noScalarComp==1 otherwise there will be a runtime error or the data will be read wrongly
 //             inputFile >> scalars[noScalarComp*i+j];

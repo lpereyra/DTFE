@@ -944,15 +944,27 @@ void User_options::updateEntries(size_t const noTotalParticles,
     
     
     // Set the 'region' variable
-    if ( regionOn and not regionMpcOn )
+    if ( regionOn )
     {
-        for (size_t i=0; i<region.size(); ++i )
-            region[i] = fullBoxOffset[i%2] + region[i] * fullBoxLength[i%2];
-        regionMpcOn = true;
-    }
-    else if ( not regionOn )
+       std::ostringstream buffer;
+       buffer << "_region";
+       if( not regionMpcOn )
+       {
+         for (size_t i=0; i<region.size(); ++i )
+         {
+           buffer << "_" << region[i];
+           region[i] = fullBoxOffset[i%2] + region[i] * fullBoxLength[i%2];
+         }
+         regionMpcOn = true;
+       }else{
+         for (size_t i=0; i<region.size(); ++i )
+           buffer << "_" << region[i]/fullBoxLength[i%2];
+         outputFilename += buffer.str();
+       }
+       outputFilename += buffer.str();
+    }else{
         region = boxCoordinates;
-    
+    } 
     
     // update the user sampling points
     userDefinedSampling = userSampling;

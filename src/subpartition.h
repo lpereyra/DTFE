@@ -138,8 +138,7 @@ void findParticlesInBox(std::vector<Particle_data> &p,
 
 
 /* Inserts all particles into "output" whose translated position by 'offset' are still inside the box of interest. */
-void insertParticlesInBox(std::vector<Particle_data> &p,
-                        std::vector<Particle_data> *output,
+void insertParticlesInBox(std::vector<Particle_data> &p, std::vector<Particle_data> *output,
                         Box const &box,
                         Real const offset[])
 {
@@ -154,10 +153,7 @@ void insertParticlesInBox(std::vector<Particle_data> &p,
 }
 
 
-void NGP_particle_count(std::vector<Particle_data> &particles,
-                        size_t const *nGrid,
-						Box box,
-                        std::vector<int> *counts);
+void NGP_particle_count(std::vector<Particle_data> &particles, size_t const *nGrid, Box box, std::vector<int> *counts);
 
 /* Computes the optimal split of an array into noPartitions partition such that all partitions have as close as possible the same number of particles.*/
 void optimalSplit(std::vector<size_t> &counts,
@@ -393,6 +389,15 @@ void subgrid(User_options &userOptions,
 #if NO_DIM==3
     message << "\t nz = [" << subgrid[userOptions.partNo][4] << " to " << subgrid[userOptions.partNo][5]-1 << "]\n";
 #endif
+
+    std::ostringstream buffer;
+    buffer << "_nx_" << subgrid[userOptions.partNo][0] << "_" << subgrid[userOptions.partNo][1];
+    buffer << "_ny_" << subgrid[userOptions.partNo][2] << "_" << subgrid[userOptions.partNo][3];
+#if NO_DIM==3
+    buffer << "_nz_" << subgrid[userOptions.partNo][4] << "_" << subgrid[userOptions.partNo][5];
+#endif
+    userOptions.outputFilename += buffer.str();
+
 }
 
 
@@ -440,8 +445,12 @@ Real averageDensity(std::vector<Particle_data> &p,
 {
     double totalMass = 0.;        // keeps track of the total mass in the full box
     for (vectorIterator it=p.begin(); it!=p.end(); ++it)
+#ifdef WEIGHT
         totalMass += it->weight();
-    
+#else        
+        totalMass += 1;
+#endif
+
     // Now the average expected weight in the box of interest is given by:
     Real averageDen = totalMass / userOptions.boxCoordinates.volume();
     MESSAGE::Message message( userOptions.verboseLevel );

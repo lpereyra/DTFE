@@ -87,8 +87,8 @@ void HDF5_readGadgetData_Cristian(std::string filename,
         }
         message << "Done\n";
     }
-    
-    
+
+#ifdef WEIGHT
     // read the masses (or weights) if different
     if ( userOptions.readParticleData[1] )
     {
@@ -119,8 +119,9 @@ void HDF5_readGadgetData_Cristian(std::string filename,
         }
         message << "Done\n";
     }
-    
-    
+#endif
+
+#ifdef VELOCITY    
     // read the velocities
     if ( userOptions.readParticleData[2] )
     {
@@ -144,8 +145,8 @@ void HDF5_readGadgetData_Cristian(std::string filename,
         }
         message << "Done\n";
     }
-    
-    
+#endif    
+
     
     delete file;
     for (int i=0; i<6; ++i)     // update the number of read particles

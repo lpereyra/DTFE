@@ -46,7 +46,6 @@ namespace bfs=boost::filesystem;
 #include "user_options.h"
 #include "message.h"
 
-
 // contains the definitions of some classes and fucntions used only for input and output purposes
 #include "io/input_output.h"
 
@@ -98,6 +97,8 @@ FunctionReadInputData chooseInputDataReadFunction(int const inputFileType)
         return &HDF5_readData_DESI;         // Read the input data from a HDF5 file storing DESI particle data.
     else if ( inputFileType==108 )
         return &HDF5_readGadgetFile_Cristian;     // Read the input HI data from a HDF5 Gadget snapshot file. See the "src/io/gadget_reader_HDF5_Cristian.cc" for the definition of this function.
+    else if ( inputFileType==131 )
+        return &readMyFile;                 // Define your custom function to read the input data. Do this in the "src/io/my_io.cc" file.
 #endif
     else if ( inputFileType==111 )
         return &readTextFile;               // Read the input data from a text file. See the "src/io/text_io.cc" for the definition of this function.
@@ -115,30 +116,126 @@ FunctionReadInputData chooseInputDataReadFunction(int const inputFileType)
 }
 
 
+/////*! This function reads the particle data used for the DTFE computation. */
+////void readInputData(std::vector<Particle_data> *p,
+////                   std::vector<Sample_point> *samplingCoordinates,
+////                   User_options *userOptions)
+////{
+////    std::string filename = userOptions->inputFilename;  // the name of the input file
+////    Read_data<Real> readData; // will store the data read from the input file
+////    
+////    
+////    // Read the data from the input file - see the function 'chooseInputDataReadFunction' that selects the input function used to read in the input data file
+////    FunctionReadInputData functionReadInputData = chooseInputDataReadFunction( userOptions->inputFileType );
+////    (*functionReadInputData)( filename, &readData, userOptions );
+////    
+////    
+////    // 'userOptions->MpcValue' is the conversion factor from the units in the input data file to Mpc units - do the next computation only if userOptions->MpcValue!=1
+////    if ( userOptions->MpcValue!=Real(1.) )
+////    {
+////        for (size_t i=0; i<userOptions->boxCoordinates.size(); ++i)
+////            userOptions->boxCoordinates[i] /= userOptions->MpcValue;
+////
+////        size_t noParticles = readData.noParticles();  // returns the number of particles
+////        Real *positions = readData.position();  //returns pointer to array storing particle positions
+////        for (size_t i=0; i<noParticles*NO_DIM; ++i)
+////            positions[i] /= userOptions->MpcValue;
+////        
+////        // if the user inserted user defined sampling points, divide the coordinates of those points by the normalization factor
+////        if ( readData.noSamples()!=size_t(0) )
+////        {
+////            Real *sampling = readData.sampling();  // returns pointer to user defined sampling coordinates
+////            Real *delta = readData.delta();        // returns pointer to user defined sampling cell sizes
+////            for (size_t i=0; i<readData.noSamples()*NO_DIM; ++i)
+////            {
+////                sampling[i] /= userOptions->MpcValue;
+////                delta[i] /= userOptions->MpcValue;
+////            }
+////        }
+////    }
+////    
+////    // now store the data in the 'Particle_data list'. It also copies the user given sampling coordinates, if any - none in this case.
+////    readData.transferData( p, samplingCoordinates );
+////}
 
-
-
-/*! This function reads the particle data used for the DTFE computation. */
 void readInputData(std::vector<Particle_data> *p,
                    std::vector<Sample_point> *samplingCoordinates,
                    User_options *userOptions)
 {
-    std::string filename = userOptions->inputFilename;  // the name of the input file
-    Read_data<Real> readData; // will store the data read from the input file
-    
-    
-    // Read the data from the input file - see the function 'chooseInputDataReadFunction' that selects the input function used to read in the input data file
-    FunctionReadInputData functionReadInputData = chooseInputDataReadFunction( userOptions->inputFileType );
-    (*functionReadInputData)( filename, &readData, userOptions );
-    
-    
-    // 'userOptions->MpcValue' is the conversion factor from the units in the input data file to Mpc units - do the next computation only if userOptions->MpcValue!=1
-    if ( userOptions->MpcValue!=Real(1.) )
+    std::string filename;
+    bool singleFile = true;
+    int nfiles;
+		
+		//long long unsigned noParticlesTotal = 2500*2500*2500;
+		//p->clear();
+		//p->reserve(noParticlesTotal);
+
+    // check to see if there is only one input file or several
+    if ( not bfs::exists(userOptions->inputFilename) ) //if this is true, than the input is in several files
+      singleFile = false;
+
+    nfiles = singleFile ? 1 : 0; 
+
+    while(not singleFile)
+  	{
+      filename = userOptions->inputFilename;  // the name of the input file
+    	std::ostringstream buffer;
+#ifdef HDF5
+			buffer << nfiles << ".hdf5";
+#else
+			buffer << nfiles;
+#endif
+      filename += buffer.str();
+
+      if ( not bfs::exists(filename) ) 
+        break;
+      
+      nfiles++;
+    }
+		
+    if(not singleFile)
+			fprintf(stdout,"Numero de files encontrados %d\n",nfiles);
+		else
+			fprintf(stdout,"Numero de files %d\n",nfiles);
+
+    for(int ifile = 0; ifile<nfiles; ifile++)
     {
+      Read_data<Real> readData; // will store the data read from the input file
+
+      if(not singleFile)
+      {
+        filename = userOptions->inputFilename;  // the name of the input file
+    		std::ostringstream buffer;
+#ifdef HDF5
+    		buffer << ifile << ".hdf5";
+#else
+    		buffer << ifile;
+#endif
+        filename += buffer.str();
+      }else{
+        filename = userOptions->inputFilename;  // the name of the input file
+      }
+
+    	MESSAGE::Message message( userOptions->verboseLevel );
+      message << "Reading the input data from my custom type file '" << filename << "' ... " << MESSAGE::Flush;
+
+      // Read the data from the input file - see the function 'chooseInputDataReadFunction' that selects the input function used to read in the input data file
+      FunctionReadInputData functionReadInputData = chooseInputDataReadFunction( userOptions->inputFileType );
+      (*functionReadInputData)( filename, &readData, userOptions );
+    
+      // 'userOptions->MpcValue' is the conversion factor from the units in the input data file to Mpc units - do the next computation only if userOptions->MpcValue!=1
+      if ( userOptions->MpcValue!=Real(1.) )
+      {
         for (size_t i=0; i<userOptions->boxCoordinates.size(); ++i)
+				{
             userOptions->boxCoordinates[i] /= userOptions->MpcValue;
-        
+						fprintf(stdout,"Box %ld - %f Mpc\n",i,userOptions->boxCoordinates[i]);
+        }
+
         size_t noParticles = readData.noParticles();  // returns the number of particles
+
+				fprintf(stdout,"Convierte a Mpc %ld particulas\n",noParticles);
+
         Real *positions = readData.position();  //returns pointer to array storing particle positions
         for (size_t i=0; i<noParticles*NO_DIM; ++i)
             positions[i] /= userOptions->MpcValue;
@@ -154,24 +251,35 @@ void readInputData(std::vector<Particle_data> *p,
                 delta[i] /= userOptions->MpcValue;
             }
         }
+      }
+
+      // now store the data in the 'Particle_data list'. It also copies the user given sampling coordinates, if any - none in this case.
+      readData.transferData( p, samplingCoordinates );
+	
+      ///size_t noParticles = readData.noParticles();  // returns the number of particles
+			///fprintf(stdout,"Va a transferir %ld particulas\n",noParticles);
+      ///Real *positions = readData.position();  //returns pointer to array storing particle positions
+      ///for (size_t i=0; i<noParticles; ++i)
+			///{
+      ///    Particle_data temp;
+      ///    for (size_t j=0; j<NO_DIM; ++j)
+      ///         temp.position(j) = positions[NO_DIM*i+j];
+      ///    p->push_back( temp );
+  		///}
+			///fprintf(stdout,"Transfirio\n");
     }
-    
-    
-    // now store the data in the 'Particle_data list'. It also copies the user given sampling coordinates, if any - none in this case.
-    readData.transferData( p, samplingCoordinates );
+
+		//assert(p->size() == noParticlesTotal);	
+
+#ifdef PERCENT
+  std::ostringstream buffer;
+  buffer << "_percent_" << (int)(100.0*FRACC);
+  userOptions->outputFilename += buffer.str();
+#endif
+
 }
 
-
-
-
-
-
-
-
-
 //! Functions for writing the output data
-
-
 //! short class to easily change between writing the output to different file types while the program is running. The user can choose the output file type using the '--output' option.
 class OutputData
 {
@@ -271,27 +379,5 @@ void writeOutputData(Quantities &uQuantities,
     if ( userOptions.aField.scalar_gradient )
         output.write( aQuantities.scalar_gradient, userOptions.outputFilename + ".a_scalarGrad", "volume averaged scalar gradient", userOptions );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #endif

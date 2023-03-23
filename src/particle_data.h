@@ -47,8 +47,12 @@ NOTE: The "particle data" was split in two such that the point properties (with 
 class Data_structure
 {
     protected:
-        Real                       _weight; // weight of each particle
-        Real                       _density;// the value of the density will be computed later using the DTFE density interpolation at each vertex position
+        Real                    _density;// the value of the density will be computed later using the DTFE density interpolation at each vertex position
+#ifdef WEIGHT
+    Real                        _weight; // weight of each particle
+#else
+    static Real                 _weight; // weight of each particle
+#endif
 #ifdef VELOCITY
     Pvector<Real,noVelComp>    _velocity;// stores particle's velocity NOTE: "Pvector" is a 1D array which behaves like a physical vector
 #else
@@ -63,8 +67,10 @@ class Data_structure
     public:
     Data_structure()
     {
-        _weight = Real(1.);
         _density = Real(0.);
+#ifdef WEIGHT
+        _weight = Real(1.);
+#endif
 #ifdef VELOCITY
         _velocity = Pvector<Real,noVelComp>::zero();
 #endif

@@ -135,7 +135,11 @@ void TSC_interpolation_regular_grid(vector<Particle_data> &particles,
             for (int i2=0; i2<3; ++i2)
             {
                 int index = cell[0][i1] * nGrid[1] + cell[1][i2];
+#ifdef WEIGHT								
                 Real result = (*it)->weight() * weight[0][i1] * weight[1][i2];
+#else								
+                Real result = weight[0][i1] * weight[1][i2];
+#endif							
                 q->density[index] += result;
                 q->velocity[index] += (*it)->velocity() * result;
             }
@@ -145,7 +149,11 @@ void TSC_interpolation_regular_grid(vector<Particle_data> &particles,
                 for (int i3=0; i3<3; ++i3)
                 {
                     int index = cell[0][i1] * nGrid[1]*nGrid[2] + cell[1][i2] * nGrid[2] + cell[2][i3];
+#ifdef WEIGHT								
                     Real result = (*it)->weight() * weight[0][i1] * weight[1][i2] * weight[2][i3];
+#else										
+                    Real result = weight[0][i1] * weight[1][i2] * weight[2][i3];
+#endif
                     q->density[index] += result;
                     q->velocity[index] += ( (*it)->velocity() * result );
                 }
@@ -209,7 +217,11 @@ void TSC_interpolation_regular_grid(vector<Particle_data> &particles,
             for (int i2=0; i2<cellCount[1]; ++i2)
             {
                 int index = cell[0][i1] * nGrid[1] + cell[1][i2];
+#ifdef WEIGHT								
                 Real result = (*it)->weight() * weight[0][i1] * weight[1][i2];
+#else								
+                Real result = weight[0][i1] * weight[1][i2];
+#endif								
                 q->density[index] += result;
                 q->velocity[index] += (*it)->velocity() * result;
             }
@@ -219,7 +231,11 @@ void TSC_interpolation_regular_grid(vector<Particle_data> &particles,
                 for (int i3=0; i3<cellCount[2]; ++i3)
                 {
                     int index = cell[0][i1] * nGrid[1]*nGrid[2] + cell[1][i2] * nGrid[2] + cell[2][i3];
+#ifdef WEIGHT								
                     Real result = (*it)->weight() * weight[0][i1] * weight[1][i2] * weight[2][i3];
+#else								
+                    Real result = weight[0][i1] * weight[1][i2] * weight[2][i3];
+#endif
                     q->density[index] += result;
                     q->velocity[index] += (*it)->velocity() * result;
                 }

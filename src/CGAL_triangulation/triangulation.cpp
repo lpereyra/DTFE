@@ -263,10 +263,13 @@ void vertexDensity(DT & dt,
         
         // compute the density
         if ( not infinite_volume )
+#ifdef WEIGHT
             vIT->info().setDensity( (vIT->info().weight()) * factor /vol );
+#else            
+            vIT->info().setDensity( factor/vol );
+#endif            
         else
             vIT->info().setDensity( 0. );
-        
         
         // show the progress of the computation
         amount100 = (100 * count++)/ noVertices;

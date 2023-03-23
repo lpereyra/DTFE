@@ -58,9 +58,12 @@ void readBinaryFile(std::string filename,
     
     // reserve memory for the input data
     Real *positions = readData->position(noParticles);  //particle positions
+#ifdef WEIGHT		
     Real *weights = readData->weight(noParticles);      //particle weights (e.g. weights = particle masses)
+#endif
+#ifdef VELOCITY		
     Real *velocities = readData->velocity(noParticles); //particle velocities
-    
+#endif    
     
     // read the rest of the input data: positions, weights and velocities
     size_t dataSize = noParticles * sizeof(float) * NO_DIM;    // number of data bytes that store the particle positions (3*4 bytes per particle)
@@ -160,9 +163,11 @@ void readBinaryFile_StructuredData(std::string filename,
     
     // copy the relevant information to the '*readData' structure
     Real *positions = readData->position( noFinalPoints );  //particle positions
+#ifdef WEIGHT		
     Real *weights;
     if ( readMasses )
         weights     = readData->weight( noFinalPoints );    //particle weights (e.g. weights = particle masses)
+#endif				
     size_t counter = 0;
     for (int i=0; i<noParticles; ++i)
     {
@@ -171,8 +176,10 @@ void readBinaryFile_StructuredData(std::string filename,
         
         for (int j=0; j<NO_DIM; ++j)
             positions[counter*NO_DIM+j] = data[i*noElements+j];
+#ifdef WEIGHT		
         if ( readMasses )
             weights[counter] = data[i*noElements+massColumn];
+#endif						
         ++counter;
     }
 }
